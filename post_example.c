@@ -49,6 +49,7 @@ static struct Session *sessions; // Linked list of all active sessions.
 
 // Prototypes
 static enum MHD_Result save_device_config(const void *cls, const char *mime, struct Session *session, struct MHD_Connection *connection);
+static enum MHD_Result retrieve_device_config(const void *cls, const char *mime, struct Session *session, struct MHD_Connection *connection);
 static enum MHD_Result not_found_page(const void *cls, const char *mime, struct Session *session, struct MHD_Connection *connection);
 static enum MHD_Result post_iterator(void *cls, enum MHD_ValueKind kind, const char *key, const char *filename, const char *content_type, const char *transfer_encoding, const char *data, uint64_t off, size_t size);
 static enum MHD_Result create_response(void *cls, struct MHD_Connection *connection, const char *url, const char *method, const char *version, const char *upload_data, size_t *upload_data_size, void **req_cls);
@@ -60,6 +61,7 @@ char *parse_form2json(char form_data[MAX_FIELD][MAX_STR], char **local_keys, int
 
 static struct Page pages[] = {
     {"/save", "application/json", &save_device_config, NULL},
+    {"/retrieve", "application/json", &retrieve_device_config, NULL},
     {NULL, NULL, &not_found_page, NULL} /* 404 */
 };
 
@@ -71,8 +73,7 @@ static struct Page pages[] = {
  * @param session session handle
  * @param connection connection to use
  */
-static enum MHD_Result save_device_config(const void *cls, const char *mime, struct Session *session, struct MHD_Connection *connection)
-{
+static enum MHD_Result save_device_config(const void *cls, const char *mime, struct Session *session, struct MHD_Connection *connection){
   enum MHD_Result ret;
   size_t slen = 0;
   char *reply;
@@ -100,6 +101,22 @@ static enum MHD_Result save_device_config(const void *cls, const char *mime, str
   ret = MHD_queue_response(connection, 404, response);
   MHD_destroy_response(response);
   return ret;
+}
+
+static enum MHD_Result retrieve_device_config(const void *cls, const char *mime, struct Session *session, struct MHD_Connection *connection){
+  static int aptr;
+  struct handler_param *param = (struct handler_param *)cls;
+  struct MHD_Response *response;
+  enum MHD_Result ret;
+
+  // TODO: Craft a JSON from device config here
+  char *reply = "{ msg: \"ok\"}";
+  response = MHD_create_response_from_buffer_static(strlen(reply), reply);
+  ret = MHD_queue_response(connection,   MHD_HTTP_OK, response);
+  MHD_destroy_response(response);
+
+  return ret;
+
 }
 
 /**
@@ -416,6 +433,14 @@ static void expire_sessions(void)
   }
 }
 
+/**
+ *
+ * @param form_data a 2d char array that hold values for the resulting json
+ * @param local_keys configuration field names
+ * @param n_keys # of field names
+ * @param n estimated size of resulting json
+ * @return prettified json buffer(should be freed by the caller)
+ */
 char *parse_form2json(char form_data[MAX_FIELD][MAX_STR], char **local_keys, int n_keys, size_t n)
 {
   size_t buffer_size = n * sizeof(char);
