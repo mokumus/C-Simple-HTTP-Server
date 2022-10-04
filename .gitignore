@@ -67,4 +67,5 @@ CTestTestfile.cmake
 _deps
 
 htserv
-*.json
+.vscode
+old_example.c

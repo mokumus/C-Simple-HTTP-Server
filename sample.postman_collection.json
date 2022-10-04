@@ -1,0 +1,86 @@
+{
+	"info": {
+		"_postman_id": "f3ec7346-80f7-4e24-a39f-156cae827317",
+		"name": "ModemInterface",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "17116453"
+	},
+	"item": [
+		{
+			"name": "New Request",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "ETH0",
+							"value": "192.168.1.10",
+							"type": "text"
+						},
+						{
+							"key": "ETH1",
+							"value": "192.168.1.11",
+							"type": "text"
+						},
+						{
+							"key": "MAIN_RTSP",
+							"value": "rtsp://admin:ser12345@192.168.5.64:554/Streaming/Channels/101",
+							"type": "text"
+						},
+						{
+							"key": "SECOND_RTSP",
+							"value": "rtsp://admin:ser12345@192.168.5.66:554/Streaming/Channels/101",
+							"type": "text"
+						},
+						{
+							"key": "DATA_CH1",
+							"value": "4000",
+							"type": "text"
+						},
+						{
+							"key": "DATA_CH2",
+							"value": "4002",
+							"type": "text"
+						},
+						{
+							"key": "TEST",
+							"value": "true",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "localhost:8080/save",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"save"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/retrieve",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"retrieve"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
