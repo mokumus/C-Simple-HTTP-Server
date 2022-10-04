@@ -86,9 +86,10 @@ static enum MHD_Result save_device_config(const void *cls, const char *mime, str
   }
 
   reply = parse_form2json(session->values, field_keys, MAX_FIELD, MAX_JSON_BUFFER);
+  // TODO: Received config is in the reply as JSON, do whatever you need with it
   printf("reply:\n%s\n", reply);
 
-  /* return static form */
+  // TODO: The information we received is echoed back, reflect the config change in local then echo it back OR return an error
   response = MHD_create_response_from_buffer_with_free_callback(strlen(reply), (void *)reply, &free);
   if (NULL == response)
   {
@@ -98,7 +99,7 @@ static enum MHD_Result save_device_config(const void *cls, const char *mime, str
   }
   add_session_cookie(session, response);
   MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_ENCODING, mime);
-  ret = MHD_queue_response(connection, 404, response);
+  ret = MHD_queue_response(connection, 200, response); 
   MHD_destroy_response(response);
   return ret;
 }
