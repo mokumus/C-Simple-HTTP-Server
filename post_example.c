@@ -12,7 +12,7 @@
 #define COOKIE_NAME "session" // Name of our cookie.
 #define MAX_JSON_BUFFER 4096
 #define MAX_STR 128
-#define MAX_FIELD 7
+#define MAX_FIELD 8
 
 
 
@@ -44,7 +44,7 @@ struct Page
   const void *handler_cls; // Extra argument to handler.
 };
 
-char *field_keys[] = {"ETH0", "ETH1", "MAIN_RTSP", "SECOND_RTSP", "DATA_CH1", "DATA_CH2", "TEST"};
+char *field_keys[] = {"ETH0", "ETH1", "MAIN_RTSP", "SECOND_RTSP", "DATA_CH1", "DATA_CH2", "TEST", "STATUS"};
 static struct Session *sessions; // Linked list of all active sessions.
 
 // Prototypes
@@ -99,6 +99,7 @@ static enum MHD_Result save_device_config(const void *cls, const char *mime, str
   }
   add_session_cookie(session, response);
   MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_ENCODING, mime);
+  
   ret = MHD_queue_response(connection, 200, response); 
   MHD_destroy_response(response);
   return ret;
@@ -370,7 +371,7 @@ static void add_session_cookie(struct Session *session, struct MHD_Response *res
 {
   char cstr[256];
   snprintf(cstr, sizeof(cstr), "%s=%s", COOKIE_NAME, session->sid);
-  if (MHD_NO == MHD_add_response_header(response, MHD_HTTP_HEADER_SET_COOKIE, cstr))
+  if (MHD_NO == MHD_add_response_header(response, MHD_HTTP_HEADER_SET_COOKIE, cstr) || MHD_NO == MHD_add_response_header(response, "Access-Control-Allow-Origin", "*"))
   {
     fprintf(stderr, "Failed to set session cookie header!\n");
   }
