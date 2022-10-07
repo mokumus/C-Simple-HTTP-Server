@@ -50,6 +50,7 @@ static struct Session *sessions; // Linked list of all active sessions.
 // Prototypes
 static enum MHD_Result save_device_config(const void *cls, const char *mime, struct Session *session, struct MHD_Connection *connection);
 static enum MHD_Result retrieve_device_config(const void *cls, const char *mime, struct Session *session, struct MHD_Connection *connection);
+static enum MHD_Result login(const void *cls, const char *mime, struct Session *session, struct MHD_Connection *connection);
 static enum MHD_Result not_found_page(const void *cls, const char *mime, struct Session *session, struct MHD_Connection *connection);
 static enum MHD_Result post_iterator(void *cls, enum MHD_ValueKind kind, const char *key, const char *filename, const char *content_type, const char *transfer_encoding, const char *data, uint64_t off, size_t size);
 static enum MHD_Result create_response(void *cls, struct MHD_Connection *connection, const char *url, const char *method, const char *version, const char *upload_data, size_t *upload_data_size, void **req_cls);
@@ -62,6 +63,7 @@ char *parse_form2json(char form_data[MAX_FIELD][MAX_STR], char **local_keys, int
 static struct Page pages[] = {
     {"/save", "application/json", &save_device_config, NULL},
     {"/retrieve", "application/json", &retrieve_device_config, NULL},
+    {"/login", "application/json", &login, NULL},
     {NULL, NULL, &not_found_page, NULL} /* 404 */
 };
 
@@ -149,6 +151,48 @@ static enum MHD_Result not_found_page(const void *cls, const char *mime, struct 
   return ret;
 }
 
+static enum MHD_Result login(const void *cls, const char *mime, struct Session *session, struct MHD_Connection *connection) {
+  static int aptr;
+  struct MHD_Response *response;
+  enum MHD_Result ret;
+  struct MHD_BasicAuthInfo *auth_info;
+  int fail;
+  (void)cls;              /* Unused. Silent compiler warning. */
+  printf("\nlogin\n");
+  auth_info = MHD_basic_auth_get_username_password3(connection);
+  
+  fail = ((NULL == auth_info) ||
+          (strlen("admin") != auth_info->username_len) ||
+          (0 != memcmp(auth_info->username, "admin",
+                       auth_info->username_len)) ||
+          /* The next check against NULL is optional,
+           * if 'password' is NULL then 'password_len' is always zero. */
+          (NULL == auth_info->password) ||
+          (strlen("admin") != auth_info->password_len) ||
+          (0 != memcmp(auth_info->password, "admin",
+                       auth_info->password_len)));
+  
+  if (fail){
+    char *reply = "{ msg: \"error\"}";
+    response = MHD_create_response_from_buffer_static(strlen(reply), (const void *)reply);
+    MHD_add_response_header(response, "Access-Control-Allow-Origin", "*");
+    MHD_add_response_header(response, MHD_HTTP_HEADER_AUTHORIZATION, "asd");
+    ret = MHD_queue_basic_auth_fail_response3(connection, "TestRealm", MHD_NO, response);
+  }
+  else {
+    char *reply = "{ msg: \"ok\"}";
+    response = MHD_create_response_from_buffer_static(strlen(reply), (const void *)reply);
+    MHD_add_response_header(response, "Access-Control-Allow-Origin", "*");
+    MHD_add_response_header(response, MHD_HTTP_HEADER_AUTHORIZATION, "asd");
+    ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
+  }
+  if (NULL != auth_info)
+    MHD_free(auth_info);
+
+  MHD_destroy_response(response);
+  return ret;
+}
+
 /**
  * Iterator over key-value pairs where the value
  * maybe made available in increments and/or may
@@ -172,7 +216,7 @@ static enum MHD_Result post_iterator(void *cls, enum MHD_ValueKind kind, const c
 {
   struct Request *request = cls;
   struct Session *session = request->session;
-
+  printf("\npost iterator\n");
   if (0 == strcmp("DONE", key))
   {
     fprintf(stdout, "Session `%s' submitted `%s', `%s'\n", session->sid, session->values[0], session->values[1]);
@@ -242,7 +286,7 @@ static enum MHD_Result create_response(void *cls, struct MHD_Connection *connect
   unsigned int i;
   (void)cls;     /* Unused. Silent compiler warning. */
   (void)version; /* Unused. Silent compiler warning. */
-
+  printf("create response\n");
   request = *req_cls;
   if (NULL == request)
   {
@@ -310,7 +354,19 @@ static enum MHD_Result create_response(void *cls, struct MHD_Connection *connect
 
     return ret;
   }
-  /* unsupported HTTP method */
+  if (0 == strcmp(method, MHD_HTTP_METHOD_OPTIONS)){
+    /* unsupported HTTP method */
+    printf("OPTIONS\n");
+
+    response = MHD_create_response_from_buffer_static(strlen(METHOD_ERROR), (const void *)METHOD_ERROR);
+    MHD_add_response_header(response, "Access-Control-Allow-Origin", "*");
+    MHD_add_response_header(response, "Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    MHD_add_response_header(response, "Access-Control-Allow-Headers", "Authorization");
+    ret = MHD_queue_response(connection, 200, response);
+    MHD_destroy_response(response);
+    return ret;
+  }
+
   response = MHD_create_response_from_buffer_static(strlen(METHOD_ERROR), (const void *)METHOD_ERROR);
   ret = MHD_queue_response(connection, MHD_HTTP_NOT_ACCEPTABLE, response);
   MHD_destroy_response(response);
@@ -326,7 +382,7 @@ static struct Session *get_session(struct MHD_Connection *connection)
 {
   struct Session *ret;
   const char *cookie;
-
+  printf("\nget session\n");
   cookie = MHD_lookup_connection_value(connection, MHD_COOKIE_KIND, COOKIE_NAME);
   if (cookie != NULL)
   {
@@ -370,6 +426,7 @@ static struct Session *get_session(struct MHD_Connection *connection)
 static void add_session_cookie(struct Session *session, struct MHD_Response *response)
 {
   char cstr[256];
+  printf("\nadd cookie\n");
   snprintf(cstr, sizeof(cstr), "%s=%s", COOKIE_NAME, session->sid);
   if (MHD_NO == MHD_add_response_header(response, MHD_HTTP_HEADER_SET_COOKIE, cstr) || MHD_NO == MHD_add_response_header(response, "Access-Control-Allow-Origin", "*"))
   {
@@ -393,6 +450,7 @@ static void request_completed_callback(void *cls, struct MHD_Connection *connect
   (void)connection; /* Unused. Silent compiler warning. */
   (void)toe;        /* Unused. Silent compiler warning. */
 
+  printf("\ncomplete callback\n");
   if (NULL == request)
     return;
   if (NULL != request->session)
@@ -412,7 +470,6 @@ static void expire_sessions(void)
   struct Session *prev;
   struct Session *next;
   time_t now;
-
   now = time(NULL);
   prev = NULL;
   pos = sessions;
