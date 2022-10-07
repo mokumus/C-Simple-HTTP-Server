@@ -158,7 +158,6 @@ static enum MHD_Result login(const void *cls, const char *mime, struct Session *
   struct MHD_BasicAuthInfo *auth_info;
   int fail;
   (void)cls;              /* Unused. Silent compiler warning. */
-  printf("\nlogin\n");
   auth_info = MHD_basic_auth_get_username_password3(connection);
   
   fail = ((NULL == auth_info) ||
@@ -216,7 +215,6 @@ static enum MHD_Result post_iterator(void *cls, enum MHD_ValueKind kind, const c
 {
   struct Request *request = cls;
   struct Session *session = request->session;
-  printf("\npost iterator\n");
   if (0 == strcmp("DONE", key))
   {
     fprintf(stdout, "Session `%s' submitted `%s', `%s'\n", session->sid, session->values[0], session->values[1]);
@@ -286,7 +284,6 @@ static enum MHD_Result create_response(void *cls, struct MHD_Connection *connect
   unsigned int i;
   (void)cls;     /* Unused. Silent compiler warning. */
   (void)version; /* Unused. Silent compiler warning. */
-  printf("create response\n");
   request = *req_cls;
   if (NULL == request)
   {
@@ -356,7 +353,6 @@ static enum MHD_Result create_response(void *cls, struct MHD_Connection *connect
   }
   if (0 == strcmp(method, MHD_HTTP_METHOD_OPTIONS)){
     /* unsupported HTTP method */
-    printf("OPTIONS\n");
 
     response = MHD_create_response_from_buffer_static(strlen(METHOD_ERROR), (const void *)METHOD_ERROR);
     MHD_add_response_header(response, "Access-Control-Allow-Origin", "*");
@@ -382,7 +378,6 @@ static struct Session *get_session(struct MHD_Connection *connection)
 {
   struct Session *ret;
   const char *cookie;
-  printf("\nget session\n");
   cookie = MHD_lookup_connection_value(connection, MHD_COOKIE_KIND, COOKIE_NAME);
   if (cookie != NULL)
   {
@@ -426,7 +421,6 @@ static struct Session *get_session(struct MHD_Connection *connection)
 static void add_session_cookie(struct Session *session, struct MHD_Response *response)
 {
   char cstr[256];
-  printf("\nadd cookie\n");
   snprintf(cstr, sizeof(cstr), "%s=%s", COOKIE_NAME, session->sid);
   if (MHD_NO == MHD_add_response_header(response, MHD_HTTP_HEADER_SET_COOKIE, cstr) || MHD_NO == MHD_add_response_header(response, "Access-Control-Allow-Origin", "*"))
   {
@@ -450,7 +444,6 @@ static void request_completed_callback(void *cls, struct MHD_Connection *connect
   (void)connection; /* Unused. Silent compiler warning. */
   (void)toe;        /* Unused. Silent compiler warning. */
 
-  printf("\ncomplete callback\n");
   if (NULL == request)
     return;
   if (NULL != request->session)
